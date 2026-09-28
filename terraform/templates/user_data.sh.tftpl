@@ -1,0 +1,34 @@
+#!/bin/bash
+# Runs once, as root, when the server first boots.
+# Everything is downloaded through the S3 gateway endpoint (no internet).
+exec > /var/log/user-data.log 2>&1
+set -x
+
+# Install packages (retry: the endpoint route can take a few seconds to be usable)
+for i in 1 2 3 4 5; do
+  dnf install -y nginx amazon-efs-utils nmap-ncat && break
+  sleep 15
+done
+
+# --- Web page that shows which server answered ---
+cat > /usr/share/nginx/html/index.html <<HTML
+<html>
+  <body style="font-family: sans-serif; text-align: center; margin-top: 15vh;">
+    <h1>depi-sec secure platform</h1>
+    <p>Answered by <b>${server_name}</b> in Availability Zone <b>${az}</b></p>
+  </body>
+</html>
+HTML
+systemctl enable --now nginx
+
+# --- Mount the shared EFS file system through its access point ---
+mkdir -p /mnt/shared
+echo "${efs_id}:/ /mnt/shared efs _netdev,noresvport,tls,accesspoint=${access_point_id} 0 0" >> /etc/fstab
+for i in 1 2 3 4 5 6; do
+  mount -a -t efs && break
+  sleep 10
+done
+
+if mountpoint -q /mnt/shared; then
+  echo "hello from ${server_name} at $(date)" > /mnt/shared/hello-from-${server_name}.txt
+fi
