@@ -1,0 +1,22 @@
+# Terraform state holds passwords in clear text - NEVER commit
+*.tfstate
+*.tfstate.*
+.terraform/
+*.tfvars
+crash.log
+crash.*.log
+tfplan
+*.tfplan
+
+# Built by the archive_file data source
+terraform/build/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Python
+__pycache__/
+*.pyc
